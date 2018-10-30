@@ -4,9 +4,7 @@ from data_utils import *
 from sklearn.model_selection import train_test_split
 from cnn_models.word_cnn import WordCNN
 from cnn_models.char_cnn import CharCNN
-from cnn_models.vd_cnn import VDCNN
-from rnn_models.attention_rnn import AttentionRNN
-from rnn_models.rcnn import RCNN
+from cnn_models.word_rnn import WordRNN
 import math
 import time
 import sys
@@ -95,7 +93,10 @@ def get_decay_rate(epoch):
 
 BATCH_SIZE = 256
 NUM_EPOCHS = 200
-WORD_MAX_LEN = 100
+if args.subword:
+    WORD_MAX_LEN = 300
+else:
+    WORD_MAX_LEN = 100
 CHAR_MAX_LEN = 1014
 DECAY_EVERY = 20
 
@@ -107,10 +108,7 @@ else:
 print("Building dataset...")
 
 if args.model == "word_cnn":
-    if args.subword:
-        filter_sizes = [3, 4, 5, 6, 7, 8]
-    else:
-        filter_sizes = [3, 4, 5]
+    filter_sizes = [3, 4, 5]
     with tf.variable_scope("model"):
         model = WordCNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, filter_sizes=filter_sizes, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
     with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
@@ -119,7 +117,7 @@ elif args.model == "char_cnn":
     with tf.variable_scope("model"):
         model = CharCNN(vocabulary_size, CHAR_MAX_LEN, NUM_CLASS, num_filters=args.emb_size, is_training=True)
     with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
-        test_model = CharCNN(vocabulary_size, CHAR_MAX_LEN, NUM_CLASS, num_filters=args.emb_size, is_training=True)
+        test_model = CharCNN(vocabulary_size, CHAR_MAX_LEN, NUM_CLASS, num_filters=args.emb_size, is_training=False)
 elif args.model == "word_rnn":
     with tf.variable_scope("model"):
         model = WordRNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE)
@@ -147,22 +145,6 @@ with tf.Session() as sess:
     
     if args.evaluate:
         if "char" in args.model:
-            valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
-            sum_accuracy, cnt, inf_time = 0, 0, 0
-            for epochs, valid_x_batch, valid_y_batch in valid_batches:
-                valid_feed_dict = {
-                    test_model.x: valid_x_batch,
-                    test_model.y: valid_y_batch
-                }
-                start_time = time.time()           
-                accuracy = sess.run(test_model.accuracy, feed_dict=valid_feed_dict)
-                inf_time += time.time() - start_time
-                sum_accuracy += accuracy
-                cnt += 1
-            test_accuracy = sum_accuracy / cnt
-            whole_size = sum([tf.size(_) for _ in variables_to_restore])
-            print("Accuracy = {} with vocabulary {} inference used {} for model size {}".format(test_accuracy, vocabulary_size, inf_time, sess.run(whole_size)))
-        elif True:
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt, inf_time = 0, 0, 0
             for epochs, valid_x_batch, valid_y_batch in valid_batches:
@@ -228,7 +210,7 @@ with tf.Session() as sess:
                 sess.run(_)
 
             valid_batches = batch_iter(new_test_x, new_test_y, BATCH_SIZE, 1, test=True)
-            sum_accuracy, cnt, inf_time, inf_lookup_time = 0, 0, 0, 0
+            sum_accuracy, cnt, inf_time = 0, 0, 0
             for epochs, valid_x_batch, valid_y_batch in valid_batches:
                 valid_feed_dict = {
                     new_test_model.x: valid_x_batch,
@@ -241,7 +223,7 @@ with tf.Session() as sess:
                 cnt += 1
             test_accuracy = sum_accuracy / cnt
             whole_size = sum([tf.size(_) for _ in new_variables_to_restore])
-            print("Accuracy = {} with vocabulary {} inference used {} lookup used {} for model size {}".format(test_accuracy, len(new_word_dict), inf_time, inf_lookup_time, sess.run(whole_size)))
+            print("Accuracy = {} with vocabulary {} inference used {} for model size {}".format(test_accuracy, len(new_word_dict), inf_time, sess.run(whole_size)))
 
         sys.exit(1)
 
@@ -343,7 +325,6 @@ with tf.Session() as sess:
     f = open(os.path.join(model_folder, "training.log"), "w")
     for epochs, x_batch, y_batch in train_batches:        
         cur_decay, learning_rate = get_decay_rate(epochs)
-
         train_feed_dict = {
             model.x: x_batch,
             model.y: y_batch,

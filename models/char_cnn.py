@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 class CharCNN(object):
-    def __init__(self, alphabet_size, document_max_len, num_class, num_filters,  is_training=True):
+    def __init__(self, alphabet_size, document_max_len, num_class, num_filters, is_training=True):
         self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
         self.filter_sizes = [7, 7, 3, 3, 3, 3]
         self.kernel_initializer = tf.truncated_normal_initializer(stddev=0.05)
