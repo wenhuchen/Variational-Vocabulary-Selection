@@ -2,9 +2,7 @@ import argparse
 import tensorflow as tf
 from data_utils import *
 from sklearn.model_selection import train_test_split
-from cnn_models.word_cnn import WordCNN
-from cnn_models.char_cnn import CharCNN
-from cnn_models.word_rnn import WordRNN
+from cnn_models.models import WordCNN, CharCNN, WordRNN
 import math
 import time
 import sys
@@ -110,9 +108,11 @@ print("Building dataset...")
 if args.model == "word_cnn":
     filter_sizes = [3, 4, 5]
     with tf.variable_scope("model"):
-        model = WordCNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, filter_sizes=filter_sizes, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
+        model = WordCNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, filter_sizes=filter_sizes, 
+            variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
     with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
-        test_model = WordCNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=False, filter_sizes=filter_sizes, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
+        test_model = WordCNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=False, filter_sizes=filter_sizes, 
+            variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
 elif args.model == "char_cnn":
     with tf.variable_scope("model"):
         model = CharCNN(vocabulary_size, CHAR_MAX_LEN, NUM_CLASS, num_filters=args.emb_size, is_training=True)
@@ -120,9 +120,11 @@ elif args.model == "char_cnn":
         test_model = CharCNN(vocabulary_size, CHAR_MAX_LEN, NUM_CLASS, num_filters=args.emb_size, is_training=False)
 elif args.model == "word_rnn":
     with tf.variable_scope("model"):
-        model = WordRNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE)
+        model = WordRNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=True, num_hidden=args.emb_size,
+            variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
     with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
-        test_model = WordRNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=False, variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE)
+        test_model = WordRNN(vocabulary_size, WORD_MAX_LEN, NUM_CLASS, emb_size=args.emb_size, is_training=False, num_hidden=args.emb_size,
+            variational=args.variational, l1=args.l1, batch_size=BATCH_SIZE, compress=args.compress)
 else:
     raise NotImplementedError()
 
