@@ -162,6 +162,22 @@ with tf.Session() as sess:
             test_accuracy = sum_accuracy / cnt
             whole_size = sum([tf.size(_) for _ in variables_to_restore])
             print("Accuracy = {} with vocabulary {} inference used {} for model size {}".format(test_accuracy, vocabulary_size, inf_time, sess.run(whole_size)))
+        elif True:
+            valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
+            sum_accuracy, cnt, inf_time = 0, 0, 0
+            for epochs, valid_x_batch, valid_y_batch in valid_batches:
+                valid_feed_dict = {
+                    test_model.x: valid_x_batch,
+                    test_model.y: valid_y_batch
+                }
+                start_time = time.time()           
+                accuracy = sess.run(test_model.accuracy, feed_dict=valid_feed_dict)
+                inf_time += time.time() - start_time
+                sum_accuracy += accuracy
+                cnt += 1
+            test_accuracy = sum_accuracy / cnt
+            whole_size = sum([tf.size(_) for _ in variables_to_restore])
+            print("Accuracy = {} with vocabulary {} inference used {} for model size {}".format(test_accuracy, vocabulary_size, inf_time, sess.run(whole_size)))
         elif args.subword:
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt, inf_time = 0, 0, 0
