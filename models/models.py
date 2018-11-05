@@ -150,6 +150,101 @@ class WordCNN(object):
                 self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
 
 
+class WordAttRNN(object):
+    def __init__(self, vocabulary_size, document_max_len, num_class, emb_size, is_training, num_hidden, variational=False, l1=False, batch_size=128, compress=False):
+        self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
+
+        self.num_hidden = num_hidden
+        self.num_layers = 2
+
+        self.x = tf.placeholder(tf.int32, [None, document_max_len], name="x")
+        self.x_len = tf.reduce_sum(tf.sign(self.x), 1)
+        self.y = tf.placeholder(tf.int32, [None], name="y")
+        self.threshold = tf.placeholder(tf.float32, [], name='threshold')
+        self.l1_threshold = tf.placeholder(tf.float32, [], name='l1_threshold')
+        
+        self.global_step = tf.Variable(0, trainable=False)
+
+        if is_training:
+            self.keep_prob = 0.5
+        else:
+            self.keep_prob = 1.0
+        
+        self.embedding = VarDropoutEmbedding(vocabulary_size, emb_size, batch_size)
+
+        if variational:
+            self.mask = tf.cast(tf.less(self.embedding.embedding_logdropout_ratio, self.threshold), tf.float32)
+            self.sparsity = tf.nn.zero_fraction(self.mask)
+        elif l1: 
+            self.mask = tf.cast(tf.greater(tf.expand_dims(self.embedding.rowwise_norm(), -1), self.l1_threshold), tf.float32)
+            self.sparsity = tf.nn.zero_fraction(self.mask) 
+        else:
+            self.mask = tf.placeholder(tf.float32, [vocabulary_size, 1], name="mask")
+            self.sparsity = tf.constant(0.0, dtype=tf.float32)
+
+        if variational:
+            if is_training:
+                self.x_emb = self.embedding(self.x, sample=True, mask=None)
+            else:
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
+        elif l1:
+            if is_training:
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
+            else:
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
+        else:
+            if not compress:
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
+            else:
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
+
+        self.weight_decay = tf.placeholder(tf.float32, shape=(), name="weight_decay")
+
+        if variational:
+            self.reg_loss = self.weight_decay * self.embedding.regularizer()
+        else:
+            self.reg_loss = tf.constant(0., dtype=tf.float32)
+        if l1:
+            self.reg_loss += self.weight_decay * self.embedding.l1_norm()
+        else:
+            self.reg_loss += tf.constant(0., dtype=tf.float32)
+
+        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)       
+
+        with tf.name_scope("embedding"):
+            init_embeddings = tf.random_uniform([vocabulary_size, self.embedding_size])
+            self.embeddings = tf.get_variable("embeddings", initializer=init_embeddings)
+            self.x_emb = tf.nn.embedding_lookup(self.embeddings, self.x)
+
+        with tf.name_scope("birnn"):
+            fw_cells = [rnn.BasicLSTMCell(self.num_hidden) for _ in range(self.num_layers)]
+            bw_cells = [rnn.BasicLSTMCell(self.num_hidden) for _ in range(self.num_layers)]
+            fw_cells = [rnn.DropoutWrapper(cell, output_keep_prob=self.keep_prob) for cell in fw_cells]
+            bw_cells = [rnn.DropoutWrapper(cell, output_keep_prob=self.keep_prob) for cell in bw_cells]
+
+            self.rnn_outputs, _, _ = rnn.stack_bidirectional_dynamic_rnn(
+                fw_cells, bw_cells, self.x_emb, sequence_length=self.x_len, dtype=tf.float32)
+
+        with tf.name_scope("attention"):
+            self.attention_score = tf.nn.softmax(tf.layers.dense(self.rnn_outputs, 1, activation=tf.nn.tanh), axis=1)
+            self.attention_out = tf.squeeze(tf.matmul(tf.transpose(self.rnn_outputs, perm=[0, 2, 1]), self.attention_score), axis=-1)
+
+        with tf.name_scope("output"):
+            self.logits = tf.layers.dense(self.attention_out, num_class, activation=None)
+            self.predictions = tf.argmax(self.logits, -1, output_type=tf.int32)
+
+        with tf.name_scope("accuracy"):
+            correct_predictions = tf.equal(self.predictions, self.y)
+            self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+
+        if is_training:
+            with tf.name_scope("loss"):
+                self.cross_entropy = tf.reduce_mean(
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
+                self.loss = self.cross_entropy + self.reg_loss
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
+
+
 class WordRNN(object):
     def __init__(self, vocabulary_size, document_max_len, num_class, emb_size, is_training, num_hidden, variational=False, l1=False, batch_size=128, compress=False):
         self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
@@ -221,11 +316,11 @@ class WordRNN(object):
                 fw_cells, bw_cells, self.x_emb, sequence_length=self.x_len, dtype=tf.float32)
             rnn_outputs_flat = tf.reshape(rnn_outputs, [-1, document_max_len * self.num_hidden * 2])
 
-        with tf.name_scope("dropout"):
-            h_drop = tf.nn.dropout(rnn_outputs_flat, self.keep_prob)
+        #with tf.name_scope("dropout"):
+        #    h_drop = tf.nn.dropout(rnn_outputs_flat, self.keep_prob)
 
         with tf.name_scope("output"):
-            self.logits = tf.layers.dense(h_drop, num_class, activation=None)
+            self.logits = tf.layers.dense(rnn_outputs_flat, num_class, activation=None)
             self.predictions = tf.argmax(self.logits, -1, output_type=tf.int32)
 
         with tf.name_scope("accuracy"):
