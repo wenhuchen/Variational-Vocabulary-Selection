@@ -239,10 +239,10 @@ with tf.Session() as sess:
     if args.compress and args.variational:
         vocab = []
         metrics = []
-        ratios = sess.run(model.embedding_logdropout_ratio).squeeze()
-        ratios = ratios.sort()
+        ratios = sess.run(model.embedding.embedding_logdropout_ratio).squeeze()
+        ratios.sort()
         #log_dropout = sess.run(test_model.embedding.embedding_logdropout_ratio)
-        intervals = [ratios[_] for _ in range(3, 10000, 100)]
+        intervals = [ratios[_]+1e-5 for _ in range(3, vocabulary_size, 100)]
         for t in intervals:
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt = 0, 0
@@ -258,23 +258,23 @@ with tf.Session() as sess:
             test_accuracy = sum_accuracy / cnt
             sparsity = sess.run(test_model.sparsity, feed_dict={test_model.threshold:t})
             #print("Accuracy = {} with vocabulary {}".format(test_accuracy, (1 - sparsity) * len(word_dict)))
-            rest_words = (1 - sparsity) * len(word_dict)
+            rest_words = int((1 - sparsity) * len(word_dict))
             if rest_words > 1:
                 metrics.append(test_accuracy)
                 vocab.append(rest_words)
         print metrics
         print vocab
-        print("ROC={}".format(ROC(metrics, vocab)))
+        print("ROC={} CR={}".format(ROC(metrics, vocab), CR(metrics, vocab)))
         sys.exit(1)
     elif args.compress and args.l1:
         vocab = []
         metrics = []
         norms = sess.run(model.embedding.rowwise_norm())
         intervals = np.linspace(norms.max(), norms.min(), 100)
-        #intervals = np.linspace(1e-8, 1, 90) + np.linspace(2, 20, 10)
         for t in intervals:
+            t = int(t)
             zeros = np.zeros((vocabulary_size, 1), 'float32')
-            zeros[:int(t), :] = 1
+            zeros[:t, :] = 1
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt = 0, 0
             for epochs, valid_x_batch, valid_y_batch in valid_batches:
@@ -294,17 +294,14 @@ with tf.Session() as sess:
                 vocab.append(rest_words)
         print metrics
         print vocab
-        print("ROC={}".format(ROC(metrics, vocab)))        
+        print("ROC={} CR={}".format(ROC(metrics, vocab), CR(metrics, vocab)))
         sys.exit(1)
     elif args.compress:
         vocab = []
         metrics = []
-        #t = 5000
-        for t in np.linspace(3, 10000, 100):
+        for t in np.linspace(3, vocabulary_size, 100):
             t = int(t)
             zeros = np.zeros((vocabulary_size, 1), 'float32')
-            #idxs = np.random.choice(range(0, 10000), size=t)
-            #zeros[idxs, :] = 1
             zeros[:t, :] = 1
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt = 0, 0
@@ -318,12 +315,11 @@ with tf.Session() as sess:
                 sum_accuracy += accuracy
                 cnt += 1
             test_accuracy = sum_accuracy / cnt
-            #if rest_words > 1:
             metrics.append(test_accuracy)
             vocab.append(t)
         print metrics
         print vocab
-        print("ROC={}".format(ROC(metrics, vocab)))        
+        print("ROC={} CR={}".format(ROC(metrics, vocab), CR(metrics, vocab)))
         sys.exit(1)
 
 
@@ -390,9 +386,9 @@ with tf.Session() as sess:
             print >> f, "Validation Accuracy = {1} Test Accuracy = {2} Vocabary = {3}".format(step // num_batches_per_epoch, valid_accuracy, test_accuracy, int((1 - sparsity) * vocabulary_size))
             
             # Save model
-            if test_accuracy > max_accuracy:
-                max_accuracy = valid_accuracy
-                saver.save(sess, model_name)
-                print("Model is saved with sparsity \n")
+            #if test_accuracy > max_accuracy:
+            #    max_accuracy = valid_accuracy
+            saver.save(sess, model_name)
+            print("Model is saved with sparsity \n")
 
     f.close()

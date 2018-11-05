@@ -26,6 +26,23 @@ def ROC(y, x):
     area = metrics.auc(x, y)
     return area
 
+def CR(y, x):
+    max_y = max(y)
+    target_y_3 = max_y - 0.03
+    target_y_5 = max_y - 0.05
+    error_3 = 1
+    error_5 = 1
+    target_x_3 = 0
+    target_x_5 = 0
+    for y_v, x_v in zip(y, x):
+        if abs(y_v - target_y_3) < error_3:
+            target_x_3 = x_v
+            error_3 = abs(y_v - target_y_3)
+        if abs(y_v - target_y_5) < error_5:
+            target_x_5 = x_v
+            error_5 = abs(y_v - target_y_5)
+    return target_x_3, target_x_5
+
 def preprocess(x):
     x = [math.log10(_) for _ in x]
     x = [_/max(x) for _ in x]
