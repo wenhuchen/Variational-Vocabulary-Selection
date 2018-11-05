@@ -209,10 +209,10 @@ class WordAttRNN(object):
         else:
             self.reg_loss += tf.constant(0., dtype=tf.float32)
 
-        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)       
+        #trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)       
 
         with tf.name_scope("embedding"):
-            init_embeddings = tf.random_uniform([vocabulary_size, self.embedding_size])
+            init_embeddings = tf.random_uniform([vocabulary_size, emb_size])
             self.embeddings = tf.get_variable("embeddings", initializer=init_embeddings)
             self.x_emb = tf.nn.embedding_lookup(self.embeddings, self.x)
 
@@ -242,7 +242,7 @@ class WordAttRNN(object):
                 self.cross_entropy = tf.reduce_mean(
                     tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
                 self.loss = self.cross_entropy + self.reg_loss
-                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step)
 
 
 class WordRNN(object):
@@ -304,7 +304,7 @@ class WordRNN(object):
         else:
             self.reg_loss += tf.constant(0., dtype=tf.float32)
 
-        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        #trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
         with tf.name_scope("birnn"):
             fw_cells = [rnn.BasicLSTMCell(self.num_hidden) for _ in range(self.num_layers)]
@@ -332,7 +332,7 @@ class WordRNN(object):
                 self.cross_entropy = tf.reduce_mean(
                     tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
                 self.loss = self.cross_entropy + self.reg_loss
-                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step)
 
 
 class CharCNN(object):
