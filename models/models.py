@@ -151,13 +151,14 @@ class WordCNN(object):
 
 
 class WordRNN(object):
-    def __init__(self, vocabulary_size, document_max_len, num_class, emb_size, is_training, variational=False, l1=False, batch_size=128, compress=False):
+    def __init__(self, vocabulary_size, document_max_len, num_class, emb_size, is_training, num_hidden, variational=False, l1=False, batch_size=128, compress=False):
         self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
 
         self.num_hidden = num_hidden
         self.num_layers = 2
         
         self.x = tf.placeholder(tf.int32, [None, document_max_len], name="x")
+        self.x_len = tf.reduce_sum(tf.sign(self.x), 1)
         self.y = tf.placeholder(tf.int32, [None], name="y")
         self.threshold = tf.placeholder(tf.float32, [], name='threshold')
         self.l1_threshold = tf.placeholder(tf.float32, [], name='l1_threshold')
@@ -183,19 +184,21 @@ class WordRNN(object):
 
         if variational:
             if is_training:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=True, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=True, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
         elif l1:
             if is_training:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
         else:
             if not compress:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
+
+        self.weight_decay = tf.placeholder(tf.float32, shape=(), name="weight_decay")
 
         if variational:
             self.reg_loss = self.weight_decay * self.embedding.regularizer()
@@ -205,6 +208,8 @@ class WordRNN(object):
             self.reg_loss += self.weight_decay * self.embedding.l1_norm()
         else:
             self.reg_loss += tf.constant(0., dtype=tf.float32)
+
+        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
         with tf.name_scope("birnn"):
             fw_cells = [rnn.BasicLSTMCell(self.num_hidden) for _ in range(self.num_layers)]

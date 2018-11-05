@@ -2,7 +2,7 @@ import argparse
 import tensorflow as tf
 from data_utils import *
 from sklearn.model_selection import train_test_split
-from cnn_models.models import WordCNN, CharCNN, WordRNN
+from models.models import WordCNN, CharCNN, WordRNN
 import math
 import time
 import sys
@@ -71,23 +71,22 @@ def build_dataset(dataset, word_dict=None, char=False):
 def get_decay_rate(epoch):
     if "char" in args.model:
         return 0, 1e-3
-    else:  
+    else:
+        learning_rate = 5e-3
         if args.l1:
-            return 1e-6, 1e-2
+            return 1e-6, learning_rate
         elif args.variational:
             small_decay = 1e-5
-            large_deacy = 1e-3
+            large_deacy = 1e-5
             start_decay = 40
             interval = (large_deacy - small_decay) / (NUM_EPOCHS - start_decay)
             if epoch < start_decay:
                 cur_decay = small_decay
-                learning_rate = 1e-2
             else:
                 cur_decay = interval * (epoch - small_decay) + small_decay
-                learning_rate = 1e-2
             return cur_decay, learning_rate
         else:
-            return 0, 1e-2
+            return 0, learning_rate
 
 BATCH_SIZE = 256
 NUM_EPOCHS = 200
@@ -292,11 +291,13 @@ with tf.Session() as sess:
     elif args.compress:
         vocab = []
         metrics = []
-        t = 5000
-        for _ in range(50):
+        #t = 5000
+        for t in np.linspace(3, 10000, 100):
+            t = int(t)
             zeros = np.zeros((vocabulary_size, 1), 'float32')
-            idxs = np.random.choice(range(0, 10000), size=t)
-            zeros[idxs, :] = 1
+            #idxs = np.random.choice(range(0, 10000), size=t)
+            #zeros[idxs, :] = 1
+            zeros[:t, :] = 1
             valid_batches = batch_iter(test_x, test_y, BATCH_SIZE, 1, test=True)
             sum_accuracy, cnt = 0, 0
             for epochs, valid_x_batch, valid_y_batch in valid_batches:
