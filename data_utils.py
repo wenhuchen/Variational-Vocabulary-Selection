@@ -9,37 +9,29 @@ import pandas as pd
 import pickle
 import numpy as np
 import math
+from sklearn import metrics
 
 triple_names = ["class", "title", "content"]
 twin_names = ["class", "content"]
-
+"""
 def ROC(y, x):
     x = preprocess(x)
     area = 0
     for xi, xj, yi, yj in zip(x[:-1], x[1:], y[:-1], y[1:]):
         area += (yi + yj) / 2 * abs(xj - xi)
     return area
+"""
+def ROC(y, x):
+    x = preprocess(x)
+    area = metrics.auc(x, y)
+    return area
 
 def preprocess(x):
-    #x = [math.log10(_) for _ in x]
+    x = [math.log10(_) for _ in x]
     x = [_/max(x) for _ in x]
     return x
 
 def get_train_path(dataset, step):
-    """
-    DB_TRAIN_PATH = "dbpedia_csv/train.csv"
-    DB_TEST_PATH = "dbpedia_csv/test.csv"
-    AG_TRAIN_PATH = "ag_news_csv/train.csv"
-    AG_TEST_PATH = "ag_news_csv/test.csv"
-    if dataset == "dbpedia" and step == 'train':
-        return DB_TRAIN_PATH
-    elif dataset == "dbpedia" and step == 'test':
-        return DB_TEST_PATH
-    elif dataset == "ag_news" and step == 'train':
-        return AG_TRAIN_PATH
-    elif dataset == "ag_news" and step == 'test':
-        return AG_TEST_PATH
-    """
     file_name = os.path.join("{}_csv/{}.csv".format(dataset, step))
     if os.path.exists(file_name):
         return file_name

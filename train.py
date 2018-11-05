@@ -2,7 +2,7 @@ import argparse
 import tensorflow as tf
 from data_utils import *
 from sklearn.model_selection import train_test_split
-from models.models import WordCNN, CharCNN, WordRNN
+from models.models import WordCNN, CharCNN, WordRNN, WordAttRNN
 import math
 import time
 import sys
@@ -72,11 +72,17 @@ def get_decay_rate(epoch):
     if "char" in args.model:
         return 0, 1e-3
     else:
-        learning_rate = 5e-3
+        if "rnn" in args.model:
+            learning_rate = 5e-3
+        else:
+            learning_rate = 5e-3
         if args.l1:
             return 1e-6, learning_rate
         elif args.variational:
-            small_decay = 1e-5
+            if "rnn" in args.model:
+                small_decay = 1e-5
+            else:
+                small_decay = 1e-5
             large_deacy = 1e-5
             start_decay = 40
             interval = (large_deacy - small_decay) / (NUM_EPOCHS - start_decay)
