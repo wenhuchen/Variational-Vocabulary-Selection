@@ -72,6 +72,41 @@ def clean_str(text):
     text = text.strip().lower()
     return text
 
+def build_SLU_word_dict(dataset, cutoff=None, no_pad=False):
+    words = list()
+    dir_name = "SLU-vocab/{}_word_dict.pickle"
+    if not os.path.exists(dir_name):
+        input_path = "SLU-data/{}".format(dataset)
+        with open(input_path, 'r') as fd:
+            for line in fd:
+                line = line.rstrip('\r\n')
+                line_words = line.split()
+
+                for w in line_words:
+                    if w == '_UNK':
+                        break
+                    if str.isdigit(w) == True:
+                        w = '0'
+                    words.append(w)
+
+        if cutoff is None:
+            word_counter = collections.Counter(words).most_common()
+        else:
+            word_counter = collections.Counter(words).most_common(cutoff)                    
+        
+        word_dict = dict()
+        word_dict["_PAD"] = 0
+        word_dict["_UNK"] = 1
+        for word, _ in word_counter:
+            word_dict[word] = len(word_dict)
+        with open(dict_name, "wb") as f:
+            pickle.dump(word_dict, f)
+    else:
+        with open(dict_name, "rb") as f:
+            word_dict = pickle.load(f)
+
+    return word_dict
+
 def build_word_dict(dataset):
     dict_name = "vocab/{}_word_dict.pickle".format(dataset) 
     if not os.path.exists(dict_name):
@@ -137,7 +172,6 @@ def build_word_dict_cutoff(dataset, cutoff=None, tokenize=True):
             word_dict[word] = len(word_dict)
         with open(dict_name, "wb") as f:
             pickle.dump(word_dict, f)
-
     else:
         with open(dict_name, "rb") as f:
             word_dict = pickle.load(f)

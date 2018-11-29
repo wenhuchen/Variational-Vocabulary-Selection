@@ -51,6 +51,117 @@ class VarDropoutEmbedding(object):
         KLD = -tf.reduce_sum(k1 * tf.sigmoid(k2 + k3 * log_alpha) - 0.5 * tf.nn.softplus(-log_alpha) - k1)
         return KLD    
 
+class NLUModel(object):
+    def __init__(self, vocabulary_size, intent_size, layer_size = 128, isTraining = True, batch_size=128)
+        self.x = tf.placeholder(tf.int32, [None, None], name="x")
+        self.y = tf.placeholder(tf.int32, [None], name='intent')
+        self.threshold = tf.placeholder(tf.float32, [], name='threshold')
+        self.l1_threshold = tf.placeholder(tf.float32, [], name='l1_threshold')
+        self.sequence_length = tf.placeholder(tf.int32, [None], name="sequence_length")
+        self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
+        self.global_step = tf.Variable(0, trainable=False)
+
+        if is_training:
+            self.keep_prob = 0.5
+        else:
+            self.keep_prob = 1.0
+        
+        self.embedding = VarDropoutEmbedding(vocabulary_size, emb_size, batch_size)
+
+        if variational:
+            self.mask = tf.cast(tf.less(self.embedding.embedding_logdropout_ratio, self.threshold), tf.float32)
+            self.sparsity = tf.nn.zero_fraction(self.mask)
+        elif l1: 
+            self.mask = tf.cast(tf.greater(tf.expand_dims(self.embedding.rowwise_norm(), -1), self.l1_threshold), tf.float32)
+            self.sparsity = tf.nn.zero_fraction(self.mask) 
+        else:
+            self.mask = tf.placeholder(tf.float32, [vocabulary_size, 1], name="mask")
+            self.sparsity = tf.constant(0.0, dtype=tf.float32)
+        #if variational:
+        #else:
+        #    self.embedding = VarDropoutEmbedding(vocabulary_size, emb_size, batch_size, is_training=False)
+        self.weight_decay = tf.placeholder(tf.float32, shape=(), name="weight_decay")
+
+        if variational:
+            if is_training:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=True, mask=None), -1)
+            else:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+        elif l1:
+            if is_training:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+            else:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+        else:
+            if not compress:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+            else:
+                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+
+        if variational:
+            self.reg_loss = self.weight_decay * self.embedding.regularizer()
+        else:
+            self.reg_loss = tf.constant(0., dtype=tf.float32)
+        if l1:
+            self.reg_loss += self.weight_decay * self.embedding.l1_norm()
+        else:
+            self.reg_loss += tf.constant(0., dtype=tf.float32)
+        
+        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        
+        cell_fw = tf.contrib.rnn.BasicLSTMCell(layer_size)
+        cell_bw = tf.contrib.rnn.BasicLSTMCell(layer_size)
+        
+        if isTraining:
+            cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
+            cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
+        
+        state_outputs, final_state = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, self.x_emb, \
+                                                                    sequence_length=self.sequence_length, \
+                                                                    dtype=tf.float32)
+        
+        final_state = tf.concat([final_state[0][0], final_state[0][1], final_state[1][0], final_state[1][1]], 1)
+        state_outputs = tf.concat([state_outputs[0], state_outputs[1]], 2)
+        state_shape = state_outputs.get_shape()
+
+        with tf.variable_scope('attention'):
+            intent_input = final_state
+            with tf.variable_scope('intent_attn'):
+                attn_size = state_shape[2].value
+                hidden = tf.expand_dims(state_outputs, 2)
+                k = tf.get_variable("AttnW", [1, 1, attn_size, attn_size])
+                hidden_features = tf.nn.conv2d(hidden, k, [1, 1, 1, 1], "SAME")
+                v = tf.get_variable("AttnV", [attn_size])
+
+                y = tf.layers.dense(intent_input, attn_size, use_bias=True)
+                y = tf.reshape(y, [-1, 1, 1, attn_size])
+                s = tf.reduce_sum(v*tf.tanh(hidden_features + y), [2,3])
+                a = tf.nn.softmax(s)
+                a = tf.expand_dims(a, -1)
+                a = tf.expand_dims(a, -1)
+                d = tf.reduce_sum(a * hidden, [1, 2])
+
+                if add_final_state_to_intent == True:
+                    intent_output = tf.concat([d, intent_input], 1)
+                else:
+                    intent_output = d
+
+        with tf.name_scope("output"):
+            self.logits = tf.layers.dense(intent_output, intent_size, use_bias=True)
+            self.predictions = tf.argmax(self.logits, -1, output_type=tf.int32)
+
+        with tf.name_scope("accuracy"):
+            correct_predictions = tf.equal(self.predictions, self.y)
+            self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+
+        if is_training:
+            with tf.name_scope("loss"):
+                self.cross_entropy = tf.reduce_mean(
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
+                self.loss = self.cross_entropy + self.reg_loss
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
+
+
 class WordCNN(object):
     def __init__(self, vocabulary_size, document_max_len, num_class, emb_size, is_training, filter_sizes=[3, 4, 5], variational=False, l1=False, batch_size=128, compress=False):
         self.learning_rate = tf.placeholder(tf.float32, [], name="learning_rate")
