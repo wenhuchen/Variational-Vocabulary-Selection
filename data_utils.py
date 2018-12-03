@@ -72,11 +72,10 @@ def clean_str(text):
     text = text.strip().lower()
     return text
 
-def build_SLU_word_dict(dataset, cutoff=None, no_pad=False):
+def build_SLU_word_dict(input_path, suffix, cutoff=None, stopword=False):
     words = list()
-    dir_name = "SLU-vocab/{}_word_dict.pickle"
-    if not os.path.exists(dir_name):
-        input_path = "SLU-data/{}".format(dataset)
+    dict_name = "SLU-vocab/{}_dict.pickle".format(suffix)
+    if not os.path.exists(dict_name):
         with open(input_path, 'r') as fd:
             for line in fd:
                 line = line.rstrip('\r\n')
@@ -93,19 +92,22 @@ def build_SLU_word_dict(dataset, cutoff=None, no_pad=False):
             word_counter = collections.Counter(words).most_common()
         else:
             word_counter = collections.Counter(words).most_common(cutoff)                    
-        
+
         word_dict = dict()
-        word_dict["_PAD"] = 0
-        word_dict["_UNK"] = 1
+        if stopword: 
+            word_dict["_PAD"] = 0
+            word_dict["_UNK"] = 1
         for word, _ in word_counter:
             word_dict[word] = len(word_dict)
+        iword_dict = {y:x for x,y in word_dict.iteritems()}
+        vocab = {'vocab': word_dict, 'rev': iword_dict}
         with open(dict_name, "wb") as f:
-            pickle.dump(word_dict, f)
+            pickle.dump(vocab, f)
     else:
         with open(dict_name, "rb") as f:
-            word_dict = pickle.load(f)
+            vocab = pickle.load(f)
 
-    return word_dict
+    return vocab
 
 def build_word_dict(dataset):
     dict_name = "vocab/{}_word_dict.pickle".format(dataset) 

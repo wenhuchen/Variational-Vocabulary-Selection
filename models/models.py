@@ -52,8 +52,8 @@ class VarDropoutEmbedding(object):
         return KLD    
 
 class NLUModel(object):
-    def __init__(self, vocabulary_size, intent_size, layer_size = 128, isTraining = True, batch_size=128)
-        self.x = tf.placeholder(tf.int32, [None, None], name="x")
+    def __init__(self, vocabulary_size, intent_size, layer_size=128, is_training=True, variational=False, l1=False, batch_size=128, compress=False):
+        self.x = tf.placeholder(tf.int32, [None, None], name="input_data")
         self.y = tf.placeholder(tf.int32, [None], name='intent')
         self.threshold = tf.placeholder(tf.float32, [], name='threshold')
         self.l1_threshold = tf.placeholder(tf.float32, [], name='l1_threshold')
@@ -66,7 +66,7 @@ class NLUModel(object):
         else:
             self.keep_prob = 1.0
         
-        self.embedding = VarDropoutEmbedding(vocabulary_size, emb_size, batch_size)
+        self.embedding = VarDropoutEmbedding(vocabulary_size, layer_size, batch_size)
 
         if variational:
             self.mask = tf.cast(tf.less(self.embedding.embedding_logdropout_ratio, self.threshold), tf.float32)
@@ -77,26 +77,24 @@ class NLUModel(object):
         else:
             self.mask = tf.placeholder(tf.float32, [vocabulary_size, 1], name="mask")
             self.sparsity = tf.constant(0.0, dtype=tf.float32)
-        #if variational:
-        #else:
-        #    self.embedding = VarDropoutEmbedding(vocabulary_size, emb_size, batch_size, is_training=False)
+
         self.weight_decay = tf.placeholder(tf.float32, shape=(), name="weight_decay")
 
         if variational:
             if is_training:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=True, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=True, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
         elif l1:
             if is_training:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
         else:
             if not compress:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=None)
             else:
-                self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.x_emb = self.embedding(self.x, sample=False, mask=self.mask)
 
         if variational:
             self.reg_loss = self.weight_decay * self.embedding.regularizer()
@@ -112,7 +110,7 @@ class NLUModel(object):
         cell_fw = tf.contrib.rnn.BasicLSTMCell(layer_size)
         cell_bw = tf.contrib.rnn.BasicLSTMCell(layer_size)
         
-        if isTraining:
+        if is_training:
             cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
             cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
         
@@ -141,10 +139,7 @@ class NLUModel(object):
                 a = tf.expand_dims(a, -1)
                 d = tf.reduce_sum(a * hidden, [1, 2])
 
-                if add_final_state_to_intent == True:
-                    intent_output = tf.concat([d, intent_input], 1)
-                else:
-                    intent_output = d
+                intent_output = tf.concat([d, intent_input], 1)
 
         with tf.name_scope("output"):
             self.logits = tf.layers.dense(intent_output, intent_size, use_bias=True)
@@ -156,10 +151,12 @@ class NLUModel(object):
 
         if is_training:
             with tf.name_scope("loss"):
-                self.cross_entropy = tf.reduce_mean(
-                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
+                self.opt = tf.train.AdamOptimizer(self.learning_rate)
+                self.cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y))
                 self.loss = self.cross_entropy + self.reg_loss
-                self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step, var_list=trainables)
+                gradients = tf.gradients(self.cross_entropy + self.reg_loss, trainables)
+                clipped_gradients, norm_intent = tf.clip_by_global_norm(gradients, 5.0)
+                self.optimizer = self.opt.apply_gradients(zip(clipped_gradients, trainables), global_step=self.global_step)
 
 
 class WordCNN(object):
