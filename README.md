@@ -44,10 +44,17 @@ Train VVD CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
 ```
-
+Or Start from scratch
+```
+python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --compress --variational
+```
 Evaluate VVD CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
+```
+Or Start from scratch
+```
+python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --compress --variational
 ```
 
 We have already provided the pre-trained models in "dataset/architecture_cutoff N_dim_variational/" (like ag_news/word_cnn_cutoff10000_256_variational) folders,
@@ -57,5 +64,6 @@ python train.py --model=word_cnn --id=word_cnn_cutoff10000 --dataset=ag_news --c
 ```
 
 Tips:
+- Note that --cutoff 10000 is an optional argument, it will first cut off the vocabulary to remain first 10K and then perform variational dropout, if you leave it out, the model will start scratch from the huge vocabulary. They are both ending at the same point. The difference only lies in the convergence time.
 - For VVD Training, you can stop when the accuracy reaches the maximum, do not wait until it drops too much.
 - Tunning the decay parameters will probably harvest better ACC-VOCAB AUC scores.
