@@ -1,5 +1,5 @@
 # Variational-Vocabulary-Selection
-Code for NAACL Paper "How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection", the paper will be coming soon.
+Code for NAACL19 Paper "How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection", the paper will be coming soon.
 
 Requirements:
 - Tensorflow 1.90
@@ -8,11 +8,26 @@ Requirements:
 - Matplotlib
 
 Download the data from [Google Drive](https://drive.google.com/drive/u/0/folders/0Bz8a_Dbh9Qhbfll6bVpmNUtUcFdjYmF2SEpmZUZUcVNiMUw1TWN6RDV3a0JHT3kxLVhVR2M), please put these four datasets in the repo's root directory.
-- AG-News Dataset
-- DBPedia Dataset
-- Sougou Dataset
-- Yelp-Review Dataset
+- [AG-News Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbUDNpeUdjb0wxRms)
+- [DBPedia Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbQ2Vic1kxMmZZQ1k)
+- [Sougou Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbUkVqNEszd0pHaFE)
+- [Yelp-Review Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbZlU4dXhHTFhZQU0)
+Unzip the tar file and rename these four folders as:
+- ag_news_csv
+- dbpedia_csv
+- sogou_news_csv
+- yelp_review_csv
 
+The documents of train.py parameters are listed as follows:
+```
+1. --model, which model you are using, we provide RNN and CNN models
+2. --id, the name of the model you will be saving in the directory, it needs to match during evaluation
+3. --variational, a switch, on means using VVD mode
+4. --l1, a switch, on means using l1 mode
+5. --dataset, choose a dataset from the the above four (ag_news|dbpedia|sogou|yelp_review)
+6. --emb_size, setting the embedding dimension
+7. --cutoff, the default is None, which means all the words will be remained in the vocabulary, N means the top N frequent words are remained the vocabulary
+```
 
 Train word-level CNN Model:
 ```
