@@ -12,6 +12,7 @@ Download the data from [Google Drive](https://drive.google.com/drive/u/0/folders
 - [DBPedia Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbQ2Vic1kxMmZZQ1k)
 - [Sougou Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbUkVqNEszd0pHaFE)
 - [Yelp-Review Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbZlU4dXhHTFhZQU0)
+
 Unzip the tar file and rename these four folders as:
 - ag_news_csv
 - dbpedia_csv
