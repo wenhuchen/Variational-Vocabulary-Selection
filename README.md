@@ -7,7 +7,7 @@ Requirements:
 - Sklearn
 - Matplotlib
 
-Download the data from Google Drive, please put these four datasets in the repo directory.
+Download the data from [Google Drive](https://drive.google.com/drive/u/0/folders/0Bz8a_Dbh9Qhbfll6bVpmNUtUcFdjYmF2SEpmZUZUcVNiMUw1TWN6RDV3a0JHT3kxLVhVR2M), please put these four datasets in the repo's root directory.
 - AG-News Dataset
 - DBPedia Dataset
 - Sougou Dataset
