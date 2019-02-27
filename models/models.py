@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import numpy as np
+import matplotlib.pyplot as plt
 
 class VarDropoutEmbedding(object):
     def __init__(self, input_size, layer_size, batch_size, name="embedding"):
@@ -29,8 +30,8 @@ class VarDropoutEmbedding(object):
     def clip(self, mtx, to=10):
         return tf.clip_by_value(mtx, -to, to)
 
-    def zeroed_embedding(self):
-        return self.embedding_mean * self.mask
+    def zeroed_embedding(self, mask):
+        return self.embedding_mean * mask
     
     def l1_norm(self):
         t = tf.square(self.embedding_mean)
@@ -79,6 +80,7 @@ class NLUModel(object):
             self.sparsity = tf.constant(0.0, dtype=tf.float32)
 
         self.weight_decay = tf.placeholder(tf.float32, shape=(), name="weight_decay")
+        self.embedding_matrix = self.embedding.zeroed_embedding(self.mask)
 
         if variational:
             if is_training:
@@ -198,6 +200,7 @@ class WordCNN(object):
                 self.x_emb = tf.expand_dims(self.embedding(self.x, sample=True, mask=None), -1)
             else:
                 self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=self.mask), -1)
+                self.embedding_matrix = self.embedding.zeroed_embedding(self.mask)
         elif l1:
             if is_training:
                 self.x_emb = tf.expand_dims(self.embedding(self.x, sample=False, mask=None), -1)

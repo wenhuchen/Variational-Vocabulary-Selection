@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import math
 from sklearn import metrics
+from scipy.interpolate import interp1d
 
 triple_names = ["class", "title", "content"]
 twin_names = ["class", "content"]
@@ -21,15 +22,40 @@ def ROC(y, x):
         area += (yi + yj) / 2 * abs(xj - xi)
     return area
 """
-def ROC(y, x):
-    x = preprocess(x)
-    area = metrics.auc(x, y)
+def obtain_interval(V):
+    Maximum = 200
+    interval = math.log(V) / Maximum
+    splits = []
+    for _ in range(1, Maximum + 1):
+        val = min(V - 1, math.ceil(math.exp(_ * interval)))
+        if val not in splits:
+            splits.append(val)
+    return splits
+
+def enhanced(x, y):
+    f2 = interp1d(x, y, kind='slinear')
+    new_x = list(np.linspace(min(x), 1000, 200)) + list(np.linspace(1000, max(x), 800))
+    new_y = f2(new_x)
+    return new_x, new_y
+
+def ROC(y, x, maximum_x=None):
+    if maximum_x is not None:
+        y.append(y[-1])
+        x.append(maximum_x)
+
+    new_x, new_y = enhanced(x, y)
+    
+    new_x = [math.log10(_) for _ in new_x]
+    
+    new_x = [_/max(new_x) for _ in new_x]
+    new_y = [_/max(new_y) for _ in new_y]
+    area = metrics.auc(new_x, new_y)
     return area
 
 def CR(y, x):
-    max_y = max(y)
-    target_y_3 = max_y - 0.03
-    target_y_5 = max_y - 0.05
+    target_y_3 = max(y) - 0.03
+    target_y_5 = max(y) - 0.05
+    x, y = enhanced(x, y)
     error_3 = 1
     error_5 = 1
     target_x_3 = 0
@@ -42,11 +68,6 @@ def CR(y, x):
             target_x_5 = x_v
             error_5 = abs(y_v - target_y_5)
     return target_x_3, target_x_5
-
-def preprocess(x):
-    x = [math.log10(_) for _ in x]
-    x = [_/max(x) for _ in x]
-    return x
 
 def get_train_path(dataset, step):
     file_name = os.path.join("{}_csv/{}.csv".format(dataset, step))
@@ -143,7 +164,10 @@ def build_word_dict(dataset):
     return word_dict
 
 def build_word_dict_cutoff(dataset, cutoff=None, tokenize=True):
-    dict_name = "vocab/{}_word_dict_cutoff{}.pickle".format(dataset, cutoff)
+    if cutoff:
+        dict_name = "vocab/{}_word_dict_cutoff{}.pickle".format(dataset, cutoff)
+    else:
+        dict_name = "vocab/{}_word_dict.pickle".format(dataset)    
     if not os.path.exists(dict_name):
         if "yelp" in dataset:
             train_df = pd.read_csv(get_train_path(dataset, 'train'), names=twin_names)
