@@ -1,5 +1,5 @@
 # Variational-Vocabulary-Selection
-Code for NAACL19 Paper "How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection", the paper will be coming soon.
+Code for NAACL19 Paper ["How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection"](https://arxiv.org/abs/1902.10339)
 
 Requirements:
 - Tensorflow 1.90
