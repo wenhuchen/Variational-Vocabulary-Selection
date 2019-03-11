@@ -7,17 +7,8 @@ Requirements:
 - Sklearn
 - Matplotlib
 
-Download the data from [Google Drive](https://drive.google.com/drive/u/0/folders/0Bz8a_Dbh9Qhbfll6bVpmNUtUcFdjYmF2SEpmZUZUcVNiMUw1TWN6RDV3a0JHT3kxLVhVR2M), please put these four datasets in the repo's root directory.
-- [AG-News Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbUDNpeUdjb0wxRms)
-- [DBPedia Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbQ2Vic1kxMmZZQ1k)
-- [Sougou Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbUkVqNEszd0pHaFE)
-- [Yelp-Review Dataset](https://drive.google.com/open?id=0Bz8a_Dbh9QhbZlU4dXhHTFhZQU0)
-
-Unzip the tar file and rename these four folders as:
-- ag_news_csv
-- dbpedia_csv
-- sogou_news_csv
-- yelp_review_csv
+Download the data from [Google Drive](https://drive.google.com/drive/folders/19hAnqpeJRf8UX4_5q93_eMCUiqteMdna?usp=sharing
+), please put the dataset folders in the repo's root directory.
 
 The documents of train.py parameters are listed as follows:
 ```
