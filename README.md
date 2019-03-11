@@ -7,8 +7,7 @@ Requirements:
 - Sklearn
 - Matplotlib
 
-Download the data from [Google Drive](https://drive.google.com/drive/folders/19hAnqpeJRf8UX4_5q93_eMCUiqteMdna?usp=sharing
-), please put the dataset folders in the repo's root directory.
+Download the train/val/test data from [Google Drive](https://drive.google.com/open?id=19hAnqpeJRf8UX4_5q93_eMCUiqteMdna), please put the dataset folders in the repo's root directory.
 
 The documents of train.py parameters are listed as follows:
 ```
