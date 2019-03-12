@@ -407,6 +407,7 @@ with tf.Session() as sess:
 
     if not os.path.exists(model_folder):
         os.mkdir(model_folder)
+        
     f = open(os.path.join(model_folder, "training.log"), "w")
     for epochs, x_batch, y_batch in train_batches:        
         cur_decay, learning_rate = get_decay_rate(epochs)
