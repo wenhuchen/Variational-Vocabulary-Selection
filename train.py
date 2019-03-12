@@ -153,9 +153,9 @@ with tf.Session() as sess:
         model_folder = "{}_models/{}_{}_l1".format(args.dataset, args.id, args.emb_size)
     else:
         model_folder = "{}_models/{}_{}".format(args.dataset, args.id, args.emb_size)
-	
-	if not os.path.exists(model_folder):
-		os.makedirs(model_folder)
+
+    if not os.path.exists(model_folder):
+        os.makedirs(model_folder)
 
     model_name = os.path.join(model_folder, "model.ckpt")
 
