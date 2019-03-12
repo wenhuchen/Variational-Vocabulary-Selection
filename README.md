@@ -80,36 +80,28 @@ class VarDropoutEmbedding(object):
         KLD = -tf.reduce_sum(k1 * tf.sigmoid(k2 + k3 * log_alpha) - 0.5 * tf.nn.softplus(-log_alpha) - k1)
         return KLD 
 ```
-
-Train word-level CNN Model:
+**Baseline:**
+- Train word-level CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --cutoff 10000 --dataset=ag_news
 ```
 
-Evaluate Frequency-based CNN Model:
+- Evaluate Frequency-based CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress
 ```
-
-Train VVD CNN Model:
+**Our proposed model:**
+- Train VVD CNN Model (--cutoff parameter can be left out):
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
 ```
-Or Start from scratch
-```
-python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --compress --variational
-```
-Evaluate VVD CNN Model:
+- Evaluate VVD CNN Model (--cutoff parameter can be left out), it needs to be consistent with trained id:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
 ```
-Or Start from scratch
-```
-python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --compress --variational
-```
 
-We have already provided the pre-trained models in "dataset/architecture_cutoff N_dim_variational/" (like ag_news/word_cnn_cutoff10000_256_variational) folders,
-feel free to reload the model for evaluation, an example is shown below:
+**We have already provided the pre-trained models in "dataset/architecture_cutoff N_dim_variational/" (like ag_news/word_cnn_cutoff10000_256_variational) folders,**
+you can directly reload the model for evaluation to compute the propose metrics, an example is shown below:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff10000 --dataset=ag_news --cutoff 10000 --compress --variational
 ```
