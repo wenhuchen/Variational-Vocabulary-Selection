@@ -159,7 +159,7 @@ with tf.Session() as sess:
 
     model_name = os.path.join(model_folder, "model.ckpt")
 
-    if tf.train.checkpoint_exists(model_folder):
+    if tf.train.checkpoint_exists(model_name):
         saver.restore(sess, model_name)
         print('Restored on Test: {}'.format(model_name))
 

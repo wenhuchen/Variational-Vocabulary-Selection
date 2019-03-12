@@ -1,6 +1,5 @@
 #coding: utf-8
 import os
-import wget
 import tarfile
 import re
 from nltk.tokenize import word_tokenize
@@ -75,14 +74,7 @@ def get_train_path(dataset, step):
         return file_name
     else:
         raise ValueError("Such dataset does not exist")
-
-def download_dbpedia():
-    dbpedia_url = 'https://github.com/le-scientifique/torchDatasets/raw/master/dbpedia_csv.tar.gz'
-
-    wget.download(dbpedia_url)
-    with tarfile.open("dbpedia_csv.tar.gz", "r:gz") as tar:
-        tar.extractall()
-
+        
 def clean_str(text):
     try:
         text = re.sub(r"[^A-Za-z0-9(),!?\'\`\"@]", " ", text)
