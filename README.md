@@ -20,6 +20,66 @@ The documents of train.py parameters are listed as follows:
 7. --cutoff, the default is None, which means all the words will be remained in the vocabulary, N means the top N frequent words are remained the vocabulary
 ```
 
+Core of the code: the variational dropout embedding class:
+```
+class VarDropoutEmbedding(object):
+    def __init__(self, input_size, layer_size, batch_size, name="embedding"):
+        self.name = name
+        self.input_size = input_size
+        self.layer_size = layer_size
+        self.batch_size = batch_size
+        self.logdropout_init = tf.random_uniform_initializer(0, 3)
+        # Mean value of the word embedding
+        self.embedding_mean = tf.get_variable(name, [self.input_size, self.layer_size])
+        # Dropout ratio of the word embedding for each row
+        self.embedding_logdropout_ratio = tf.get_variable(name + "_ratio", [self.input_size, 1], initializer=self.logdropout_init)
+        self.eps = tf.random_normal([self.batch_size, 1, self.layer_size], 0.0, 1.0)      
+
+    def __call__(self, input_data, sample=False, mask=None):
+        if sample:
+            # use the re-parameterization trick during training
+            output_mean = tf.nn.embedding_lookup(self.embedding_mean, input_data)
+            output_logdropout = tf.nn.embedding_lookup(self.clip(self.embedding_logdropout_ratio), input_data)
+            output_std = tf.exp(0.5 * output_logdropout) * output_mean
+            output = output_mean + output_std * self.eps
+        elif mask is None:
+            # baseline l1 regularization
+            output = tf.nn.embedding_lookup(self.clip(self.embedding_mean), input_data)
+        else:
+            # use the vocabulary dropout mask to drop useless words during test time
+            output = tf.nn.embedding_lookup(mask * self.clip(self.embedding_mean), input_data)
+
+        return output
+
+    def clip(self, mtx, to=10):
+        return tf.clip_by_value(mtx, -to, to)
+
+    def zeroed_embedding(self, mask):
+        return self.embedding_mean * mask
+    
+    def l1_norm(self):
+        # Obtain the L1 norm
+        t = tf.square(self.embedding_mean)
+        t = tf.reduce_sum(t, axis=-1) + tf.constant(1.0e-8)
+        t = tf.sqrt(t)
+        reg = tf.reduce_sum(t)
+        return reg
+
+    def rowwise_norm(self):
+        # Obtain the L1 norm for each word
+        t = tf.square(self.embedding_mean)
+        t = tf.reduce_sum(t, axis=-1) + tf.constant(1.0e-8)
+        t = tf.sqrt(t)
+        return t
+
+    def regularizer(self):
+        # Obtain the regularization loss function
+        k1, k2, k3 = 0.63576, 1.8732, 1.48695
+        log_alpha = self.clip(self.embedding_logdropout_ratio)
+        KLD = -tf.reduce_sum(k1 * tf.sigmoid(k2 + k3 * log_alpha) - 0.5 * tf.nn.softplus(-log_alpha) - k1)
+        return KLD 
+```
+
 Train word-level CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --cutoff 10000 --dataset=ag_news
