@@ -2,6 +2,7 @@
 Code for NAACL19 Paper ["How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection"](https://arxiv.org/abs/1902.10339)
 
 Requirements:
+- Python 2.7
 - Tensorflow 1.90
 - Pandas
 - Sklearn
