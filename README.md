@@ -1,6 +1,18 @@
 # Variational-Vocabulary-Selection
 Code for NAACL19 Long Oral Paper ["How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection"](https://arxiv.org/abs/1902.10339)
 
+## Overview
+The algorithm is based variational dropout algorithm to view the embedding matrix as a Bayesian neural network, and associate each row of the embedding matrix with a dropout probability p, if the dropout probability is greater than a certain threshold, the word can be dropped out without hurting the performance. An example shows document classification, the categories are music, sports, news. Ideally, the unrelated words like "what, new" should have very low correlation, thus associated with a high dropout probability.
+<p>
+<img src="dropout.png" width="600">
+</p>
+
+
+We demonstrate some visualization of embedding matrix below, the black lines represents the remained words. In general, the words with higher frequency is kept, but it's not exactly overlapping with frequency-based method.
+<p>
+<img src="sparsity.png" width="600">
+</p>
+
 Requirements:
 - Python 2.7
 - Tensorflow 1.90
@@ -8,11 +20,12 @@ Requirements:
 - Sklearn
 - Matplotlib
 
-**Download the train/val/test data from [Google Drive](https://drive.google.com/open?id=19hAnqpeJRf8UX4_5q93_eMCUiqteMdna), please put the dataset folders in the repo's root directory.**
+## Dataset Download
+Download the train/val/test data from [Google Drive](https://drive.google.com/open?id=19hAnqpeJRf8UX4_5q93_eMCUiqteMdna), please put the dataset folders in the repo's root directory.
 
-**Download the pre-trained models from [Google Drive](https://drive.google.com/file/d/14cfa_QUHleRbndkDgcsawYlbXfkXpG8q/view?usp=sharing), please untar the files into the repo's root directory.**
 
-The documents of train.py parameters are listed as follows:
+## Model Training
+train.py parameters are listed as follows:
 ```
 1. --model, which model you are using, we provide RNN and CNN models
 2. --id, the name of the model you will be saving in the directory, it needs to match during evaluation
@@ -23,7 +36,7 @@ The documents of train.py parameters are listed as follows:
 7. --cutoff, the default is None, which means all the words will be remained in the vocabulary, N means the top N frequent words are remained the vocabulary
 ```
 
-Core of the code: the variational dropout embedding class:
+### Core Class: the variational dropout embedding
 ```
 class VarDropoutEmbedding(object):
     def __init__(self, input_size, layer_size, batch_size, name="embedding"):
@@ -82,7 +95,7 @@ class VarDropoutEmbedding(object):
         KLD = -tf.reduce_sum(k1 * tf.sigmoid(k2 + k3 * log_alpha) - 0.5 * tf.nn.softplus(-log_alpha) - k1)
         return KLD 
 ```
-**Baseline:**
+### Baseline:
 - Train word-level CNN Model:
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --cutoff 10000 --dataset=ag_news
@@ -92,7 +105,8 @@ python train.py --model=word_cnn --id=word_cnn_cutoff --cutoff 10000 --dataset=a
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress
 ```
-**Our proposed model:**
+
+### Variational Vocabulary Dropout:
 - Train VVD CNN Model (--cutoff parameter can be left out):
 ```
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
@@ -102,14 +116,19 @@ python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff
 python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff 10000 --compress --variational
 ```
 
-**We have already provided the pre-trained models in "dataset/architecture_cutoff N_dim_variational/" (like ag_news/word_cnn_cutoff10000_256_variational) folders,**
-you can directly reload the model for evaluation to compute the propose metrics, an example is shown below:
-```
-python train.py --model=word_cnn --id=word_cnn_cutoff10000 --dataset=ag_news --cutoff 10000 --compress --variational
-```
-
-Tips:
+### Tips:
 - Note that --cutoff 10000 is an optional argument, it will first cut off the vocabulary to remain first 10K and then perform variational dropout, if you leave it out, the model will start scratch from the huge vocabulary. They are both ending at the same point. The difference only lies in the convergence time.
 - For VVD Training, you can stop when the accuracy reaches the maximum, do not wait until it drops too much.
 - Tunning the decay parameters will probably harvest better ACC-VOCAB AUC scores.
 
+
+## Reproducibility
+- Download the pre-trained models from [Google Drive](https://drive.google.com/file/d/14cfa_QUHleRbndkDgcsawYlbXfkXpG8q/view?usp=sharing), please untar the files into the repo's root directory.
+
+- Untar it into "dataset/architecture_cutoff N_dim_variational/" (like ag_news/word_cnn_cutoff10000_256_variational) folders. You can directly reload the model for evaluation to compute the propose metrics (AUC and Vocab @-X%), an example is shown below:
+```
+python train.py --model=word_cnn --id=word_cnn_cutoff10000 --dataset=ag_news --cutoff 10000 --compress --variational
+```
+
+## Acknowledgements:
+We gratefully thank Yandex for sharing their code on [variational dropout](https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn).
