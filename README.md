@@ -10,7 +10,7 @@ The algorithm is based variational dropout algorithm to view the embedding matri
 
 We demonstrate some visualization of embedding matrix below, the black lines represents the remained words. In general, the words with higher frequency is kept, but it's not exactly overlapping with frequency-based method.
 <p>
-<img src="sparsity.png" width="600">
+<img src="sparsity.png" width="400">
 </p>
 
 ## Requirements:
@@ -130,5 +130,5 @@ python train.py --model=word_cnn --id=word_cnn_cutoff --dataset=ag_news --cutoff
 python train.py --model=word_cnn --id=word_cnn_cutoff10000 --dataset=ag_news --cutoff 10000 --compress --variational
 ```
 
-## Acknowledgements:
+## Acknowledgement:
 We gratefully thank Yandex for sharing their code on [variational dropout](https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn).
