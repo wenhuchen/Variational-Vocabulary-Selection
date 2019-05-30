@@ -13,7 +13,7 @@ We demonstrate some visualization of embedding matrix below, the black lines rep
 <img src="sparsity.png" width="600">
 </p>
 
-Requirements:
+## Requirements:
 - Python 2.7
 - Tensorflow 1.90
 - Pandas
