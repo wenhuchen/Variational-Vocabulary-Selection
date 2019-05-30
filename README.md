@@ -10,6 +10,8 @@ Requirements:
 
 **Download the train/val/test data from [Google Drive](https://drive.google.com/open?id=19hAnqpeJRf8UX4_5q93_eMCUiqteMdna), please put the dataset folders in the repo's root directory.**
 
+**Download the pre-trained models from [Google Drive](https://drive.google.com/file/d/14cfa_QUHleRbndkDgcsawYlbXfkXpG8q/view?usp=sharing), please untar the files into the repo's root directory.**
+
 The documents of train.py parameters are listed as follows:
 ```
 1. --model, which model you are using, we provide RNN and CNN models
