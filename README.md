@@ -1,5 +1,5 @@
 # Variational-Vocabulary-Selection
-Code for NAACL19 Paper ["How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection"](https://arxiv.org/abs/1902.10339)
+Code for NAACL19 Long Oral Paper ["How Large a Vocabulary Does Text Classification Need? A Variational Approach to Vocabulary Selection"](https://arxiv.org/abs/1902.10339)
 
 Requirements:
 - Python 2.7
@@ -110,3 +110,4 @@ Tips:
 - Note that --cutoff 10000 is an optional argument, it will first cut off the vocabulary to remain first 10K and then perform variational dropout, if you leave it out, the model will start scratch from the huge vocabulary. They are both ending at the same point. The difference only lies in the convergence time.
 - For VVD Training, you can stop when the accuracy reaches the maximum, do not wait until it drops too much.
 - Tunning the decay parameters will probably harvest better ACC-VOCAB AUC scores.
+
