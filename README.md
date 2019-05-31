@@ -5,19 +5,13 @@ Code and Data for NAACL19 Long Oral Paper ["How Large a Vocabulary Does Text Cla
 
 ## Overview
 - The algorithm is based variational dropout algorithm to view the embedding matrix as a Bayesian neural network, and associate each row of the embedding matrix with a dropout probability p, if the dropout probability is greater than a certain threshold, the word can be dropped out without hurting the performance. An example shows document classification, the categories are music, sports, news. Ideally, the unrelated words like "what, new" should have very low correlation, thus associated with a high dropout probability.
-<p>
 <img src="dropout.png" width="600">
-</p>
 
-- Evaluation Metric:
-<p>
+- Evaluation Metric: we adopt the area under curve (greater is better) and vocabulary size under 3% accuracy drop (smaller is better) for evaluation.
 <img src="metrics.png" width="400">
-</p>
 
 - We demonstrate some visualization of embedding matrix below, the black lines represents the remained words. In general, the words with higher frequency is kept, but it's not exactly overlapping with frequency-based method.
-<p>
 <img src="sparsity.png" width="400">
-</p>
 
 ## Requirements:
 - Python 2.7
